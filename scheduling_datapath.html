@@ -223,6 +223,28 @@
             <span class="toggle-slider"></span>
           </label>
         </div>
+        <!-- Algorithm picker (shown only when compare mode is on) -->
+        <div id="compare-algo-picker" style="display:none; background:#f8f9fa; border:1px solid #dcdde1; border-radius:3px; padding:10px; flex-direction:column; gap:7px;">
+          <div style="font-size:11px; color:#7f8c8d; font-weight:600; margin-bottom:2px;">Algorithms to show</div>
+          <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#34495e; cursor:pointer;">
+            <input type="checkbox" id="cmp-FCFS" checked onchange="onCompareAlgoChange()"> FCFS
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#34495e; cursor:pointer;">
+            <input type="checkbox" id="cmp-SJF" checked onchange="onCompareAlgoChange()"> SJF
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#34495e; cursor:pointer;">
+            <input type="checkbox" id="cmp-SRTF" checked onchange="onCompareAlgoChange()"> SRTF
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#34495e; cursor:pointer;">
+            <input type="checkbox" id="cmp-RR" checked onchange="onCompareAlgoChange()"> Round Robin
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#34495e; cursor:pointer;">
+            <input type="checkbox" id="cmp-PRIORITY" checked onchange="onCompareAlgoChange()"> Priority (Preemptive)
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#34495e; cursor:pointer;">
+            <input type="checkbox" id="cmp-PRIORITY_NP" checked onchange="onCompareAlgoChange()"> Priority (Non-Preemptive)
+          </label>
+        </div>
       </div>
     </div>
 
@@ -662,8 +684,13 @@ function onStepToggle(el) {
   else { document.getElementById('timeline-inner').innerHTML = renderSVG(currentResult, viewMode); attachTooltips(currentResult); }
 }
 
+function onCompareAlgoChange() {
+  if (compareMode) runCompare();
+}
+
 function onCompareToggle(el) {
   compareMode = el.checked;
+  document.getElementById('compare-algo-picker').style.display = compareMode ? 'flex' : 'none';
   if (compareMode && stepMode) {
     stepMode = false;
     document.getElementById('step-toggle-input').checked = false;
@@ -712,7 +739,16 @@ function renderStep() {
 
 function runCompare() {
   const quantum = Math.max(1, parseInt(document.getElementById('quantum-input').value) || 2);
-  const algos  = ['FCFS','SJF','SRTF','RR','PRIORITY','PRIORITY_NP'];
+  const allAlgos = ['FCFS','SJF','SRTF','RR','PRIORITY','PRIORITY_NP'];
+  const algos = allAlgos.filter(a => {
+    const el = document.getElementById('cmp-' + a);
+    return el ? el.checked : true;
+  });
+  if (algos.length === 0) {
+    document.getElementById('timeline-inner').innerHTML = '<div style="padding:24px; color:#7f8c8d; font-size:13px;">Select at least one algorithm to compare.</div>';
+    document.getElementById('stats-section').style.display = 'none';
+    return;
+  }
   const labels = { FCFS:'FCFS', SJF:'SJF', SRTF:'SRTF', RR:`Round Robin (q=${quantum})`, PRIORITY:'Priority (Preemptive)', PRIORITY_NP:'Priority (Non-Preemptive)' };
 
   let html = '<div style="display:flex; flex-direction:column; gap:16px; padding:12px;">';
