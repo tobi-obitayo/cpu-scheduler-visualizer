@@ -546,7 +546,7 @@ function simulate(procs, algo, quantum, concurrentIO) {
 
 const CELL = 28, ROW_H = 28, LABEL_W = 72, TIME_H = 22;
 
-function renderSVG(res, mode) {
+function renderSVG(res, mode, maxT = Infinity) {
   const { cpuLine, ioSets, n } = res;
   const T = cpuLine.length;
   const rows = mode === 'compact' ? 2 : n + 1;
@@ -578,6 +578,7 @@ function renderSVG(res, mode) {
   const ioRowY = TIME_H + (mode === 'compact' ? 1 : n) * ROW_H;
 
   for (let t = 0; t < T; t++) {
+    if (t > maxT) continue;
     const x = LABEL_W + t * CELL;
 
     // CPU row(s)
@@ -699,7 +700,7 @@ function onStepToggle(el) {
   document.getElementById('step-controls').style.display = stepMode ? 'flex' : 'none';
   document.getElementById('step-log').style.display = stepMode ? 'block' : 'none';
   if (!currentResult) return;
-  if (stepMode) { stepT = 0; renderStep(); }
+  if (stepMode) { stepT = -1; renderStep(); }
   else { document.getElementById('timeline-inner').innerHTML = renderSVG(currentResult, viewMode); attachTooltips(currentResult); }
 }
 
@@ -731,25 +732,19 @@ function onCompareToggle(el) {
 
 function stepBy(delta) {
   if (!currentResult) return;
-  stepT = Math.max(0, Math.min(currentResult.cpuLine.length - 1, stepT + delta));
+  stepT = Math.max(-1, Math.min(currentResult.cpuLine.length - 1, stepT + delta));
   renderStep();
 }
 
 function renderStep() {
   if (!currentResult) return;
   const T = currentResult.cpuLine.length;
-  const rows = viewMode === 'compact' ? 2 : currentResult.n + 1;
-  const gridH = rows * ROW_H + 1;
-
-  let svg = renderSVG(currentResult, viewMode);
-  const hx = LABEL_W + stepT * CELL;
-  const highlight = `<rect x="${hx}" y="${TIME_H}" width="${CELL}" height="${gridH}" fill="#e74c3c22" stroke="#e74c3c" stroke-width="1.5" pointer-events="none"/>`;
-  svg = svg.replace('</svg>', highlight + '</svg>');
+  const svg = renderSVG(currentResult, viewMode, stepT);
 
   document.getElementById('timeline-inner').innerHTML = svg;
-  document.getElementById('step-tick-label').textContent = `t = ${stepT}`;
-  document.getElementById('step-log-text').textContent = currentResult.eventLog[stepT] || '';
-  document.getElementById('btn-prev-step').disabled = stepT === 0;
+  document.getElementById('step-tick-label').textContent = stepT === -1 ? 't = \u2014' : `t = ${stepT}`;
+  document.getElementById('step-log-text').textContent = stepT === -1 ? '' : (currentResult.eventLog[stepT] || '');
+  document.getElementById('btn-prev-step').disabled = stepT === -1;
   document.getElementById('btn-next-step').disabled = stepT >= T - 1;
   attachTooltips(currentResult);
 }
@@ -882,7 +877,7 @@ function rerun() {
   document.getElementById('settings-export-svg').disabled = false;
   document.getElementById('settings-export-png').disabled = false;
   document.getElementById('export-hint').style.display = 'none';
-  if (stepMode) { stepT = 0; renderStep(); }
+  if (stepMode) { stepT = -1; renderStep(); }
   else {
     document.getElementById('timeline-inner').innerHTML = renderSVG(currentResult, viewMode);
     attachTooltips(currentResult);
